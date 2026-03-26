@@ -28,11 +28,13 @@ axes[0].plot(tomato_merged1['timestamp'], tomato_merged1['mid_price'])
 axes[0].scatter(tomato_merged1['timestamp'], tomato_merged1['price'],
                 color='red', s=10, label='Executed Trades', zorder=2, alpha=0.6)
 axes[0].set_title('TOMATO Mid Price (Day 1)')
+axes[0].set_ylim(4940, 5011)
 axes[0].legend()
 
 axes[1].plot(emerald_merged1['timestamp'], emerald_merged1['mid_price'])
 axes[1].scatter(emerald_merged1['timestamp'], emerald_merged1['price'],
                 color='red', s=10, label='Executed Trades', zorder=2, alpha=0.6)
+axes[1].set_ylim(9990, 10010)
 axes[1].set_title('EMERALD Mid Price (Day 1)')
 
 plt.tight_layout()
@@ -44,11 +46,15 @@ fig, axes = plt.subplots(2, 1, figsize=(14, 6))
 axes[0].plot(tomato_merged2['timestamp'], tomato_merged2['mid_price'])
 axes[0].scatter(tomato_merged2['timestamp'], tomato_merged2['price'],
                 color='red', s=10, label='Executed Trades', zorder=2, alpha=0.6)
+axes[0].set_ylim(4980, 5040)
 axes[0].set_title('TOMATO Mid Price (Day 2)')
+
 axes[1].plot(emerald_merged2['timestamp'], emerald_merged2['mid_price'])
 axes[1].scatter(emerald_merged2['timestamp'], emerald_merged2['price'],
                 color='red', s=10, label='Executed Trades', zorder=2, alpha=0.6)
+axes[1].set_ylim(9990, 10010)
 axes[1].set_title('EMERALD Mid Price (Day 2)')
+
 plt.tight_layout()
 plt.savefig("midprice_plot2.png")
 
