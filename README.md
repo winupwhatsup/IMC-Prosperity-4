@@ -1,15 +1,73 @@
-# IMC-Prosperity-4 Tutorial Round
-Trading Competition by IMC that I am doing the quant research part and create the strategy for the most profitable portfolio
+IMC Prosperity 4 — Tutorial Round
+Quantitative research and strategy development for IMC Prosperity 4, an algorithmic trading competition. This repository covers the full research pipeline from exploratory data analysis to statistical model estimation for two products: TOMATOES and EMERALDS.
 
-## Implementation details
-First upload here, so the code is still incomplete. All codes are inside visualize.py. I used the 4 provided datasets in csv file: 2 days of order book and 2 days of execution trade. 
+Repository Structure
+├── visualize.py                  # Main analysis script
+├── prices_round_0_day_-1.csv     # Order book snapshots — Day 1
+├── prices_round_0_day_-2.csv     # Order book snapshots — Day 2
+├── trades_round_0_day_-1.csv     # Executed trades — Day 1
+├── trades_round_0_day_-2.csv     # Executed trades — Day 2
+└── README.md
 
-## Details of each Section
-1. MID-PRICE PLOT AND EXECUTED TRADES shows the plots across timestamps of two products: TOMATOES and EMERALDS, as well as where the price is being executed comparing to the mid-price.  
-2. BID-ASK SPREAD to see the gap so that we can quote a better price and get the priority in the order book. 
-3. EXECUTED POINT of Order shows where the executed price is, comparing between executed price and bid/ask price in the order book. 
+Products
+ProductPrice LevelBehaviorStrategy ClassTOMATOES~4,950–5,010Mean-reverting with negative driftOU Process + directional sizingEMERALDS~10,000 (fixed)Two-state spread (8 or 16)Markov Chain market making
 
-## Next Steps
-- All results and written analysis will be updated once finish as a pdf document.
-- I will explore more of big/ask volume and quantity of trades for optimal sizing
-- All training and explored strategy are from Day 1, with using Day 2 as backtest and validation 
+Analysis Pipeline (visualize.py)
+1. Data Loading and Merging
+Reads all four CSV datasets (semicolon-delimited) and sorts by timestamp. Uses merge_asof to attach the most recent order book snapshot to each executed trade — ensuring every trade has its correct contemporaneous book state without stale forward-fills.
+2. Mid Price + Executed Trades
+Plots the order book mid price across all timestamps for both products on both days, with executed trade prices overlaid as scatter points. Used to identify price behavior regimes visually — TOMATOES shows a mean-reverting oscillation with downward drift; EMERALDS sits at a near-constant 10,000.
+3. Bid-Ask Spread Analysis
+Plots Level 1 and Level 2 bid-ask spreads over time per product. Key findings:
+
+TOMATOES: Spread oscillates between 6–14, resting at 13–14. Narrow spread (< 13) clusters at local price extremes — used as a directional conviction signal.
+EMERALDS: Spread is a two-state system switching between exactly 8 (narrow) and 16 (wide), driven by a single automated market maker.
+
+4. Execution Zone Classification
+Classifies each executed trade into one of five zones relative to the order book:
+
+Zone A: Hit L1 Ask (aggressive buyer)
+Zone B: Hit L1 Bid (aggressive seller)
+Zone C: Hit L2 Ask (walked up past L1)
+Zone D: Hit L2 Bid (walked down past L1)
+Zone E: Inside spread (anomaly)
+
+Result: 100% of trades in both products hit L1 only — L2 quotes are never consumed.
+5. Optimal Sizing
+Determines trade size (2–4 units) based on spread width at each timestamp — no fair value estimation required:
+SpreadSignalSize≥ 13Passive, no conviction210–12Moderate compression3≤ 9High conviction extreme4
+6. TOMATOES Model — Ornstein-Uhlenbeck Process
+Models TOMATOES price dynamics as a continuous-time mean-reverting process:
+dS_t = θ(μ - S_t)dt + σdB_t
+Parameters estimated via AR(1) regression on the discretized form S(t+1) = a + b·S(t) + ε(t):
+ParameterMeaningEstimated ValueθMean reversion speed0.0043μLong-run fair value4976.43σNoise per timestamp0.0626t½Half-life (timestamps)161.3
+Outputs three diagnostic plots: real vs simulated paths, mean reversion force over time, and residual distribution.
+7. EMERALDS Model — Markov Transition Matrix
+Models the spread state as a two-state Markov chain:
+States: Wide (16) ↔ Narrow (8)
+P(Wide → Narrow) = p
+P(Narrow → Wide) = q
+Estimated from empirical state transition frequencies on Day 1. Parameters p and q determine average time in each state and the stationary distribution — directly informing how aggressively to quote during wide vs narrow periods.
+
+Quoting Strategy Summary
+TOMATOES — Hybrid market making with directional overlay:
+
+Post bid at bid_price_1 + 1, ask at ask_price_1 - 1 (undercut L1 by 1 tick)
+At narrow spread extremes: suppress one side (don't buy at peaks, don't sell at troughs)
+Size by spread width: 2 / 3 / 4 units
+
+EMERALDS — Pure market making against known fair value (10,000):
+
+Wide state (spread = 16): quote at 9,993 / 10,007 — undercut both sides by 1 tick, earn 14 ticks per round trip
+Narrow state (spread = 8): step back, do not quote
+
+
+Data Split
+DatasetRoleDay 1 order book + tradesModel fitting and strategy designDay 2 order book + tradesBacktesting and parameter validation
+
+Next Steps
+
+ Validate OU and Markov parameters on Day 2 — check stability across days
+ Implement inventory skewing for TOMATOES to account for downward drift
+ Backtest quoting strategy on Day 2 and compute realized P&L
+ Compile full written analysis as PDF document
